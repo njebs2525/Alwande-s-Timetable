@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TuksConnect · UP Timetable Builder</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary-blue: #00205B;
+            --secondary-blue: #0055A2;
+            --accent-red: #E31B23;
+            --gold-accent: #FFD700;
+            --light-gray: #F5F5F5;
+            --medium-gray: #DDDDDD;
+            --dark-gray: #333333;
+            --lecture-color: #4CAF50;
+            --practical-color: #2196F3;
+            --timetable-bg: #ffffff;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif; }
+        body { background-color: #f8f9fa; color: var(--dark-gray); line-height: 1.6; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 0 20px; }
+        header { background: linear-gradient(to right, var(--primary-blue), var(--secondary-blue)); color: white; padding: 20px 0; border-bottom: 5px solid var(--accent-red); }
+        .header-content { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .logo { display: flex; align-items: center; gap: 15px; }
+        .logo-crest { width: 50px; height: 50px; background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue)); border-radius: 50%; border: 2px solid var(--gold-accent); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 1rem; position: relative; overflow: hidden; }
+        .logo-crest::after { content: ""; position: absolute; width: 15px; height: 15px; background-color: var(--accent-red); border-radius: 50%; bottom: 5px; right: 5px; border: 1px solid white; }
+        .logo-text h1 { font-size: 1.8rem; font-weight: 700; color: white; }
+        .logo-text span { color: var(--gold-accent); }
+        .logo-text p { font-size: 0.9rem; color: rgba(255,255,255,0.9); margin-top: 5px; }
+        .main-content { padding: 30px 0; display: grid; grid-template-columns: 1fr; gap: 30px; }
+        @media (min-width: 1024px) { .main-content { grid-template-columns: 400px 1fr; } }
+        .sidebar { background-color: white; border-radius: 15px; padding: 25px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); height: fit-content; position: sticky; top: 20px; border-top: 5px solid var(--secondary-blue); border-left: 3px solid var(--accent-red); }
+        .section-title { color: var(--primary-blue); font-size: 1.6rem; margin-bottom: 25px; padding-bottom: 12px; border-bottom: 3px solid var(--accent-red); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .module-list { margin-bottom: 30px; max-height: 400px; overflow-y: auto; padding-right: 10px; }
+        .module-list h3 { margin-bottom: 15px; color: var(--secondary-blue); font-weight: 700; font-size: 1.2rem; padding-left: 10px; border-left: 4px solid var(--accent-red); }
+        .module-item { background: linear-gradient(145deg, #ffffff, #f0f0f0); border-radius: 12px; padding: 18px; margin-bottom: 15px; cursor: pointer; transition: all 0.3s; border-left: 5px solid transparent; box-shadow: 0 3px 10px rgba(0,0,0,0.08); }
+        .module-item:hover { transform: translateX(8px) scale(1.02); background: linear-gradient(145deg, #e8f4ff, #d9ebff); box-shadow: 0 5px 15px rgba(0,85,162,0.15); }
+        .module-item.active { background: linear-gradient(145deg, #e8f4ff, #d9ebff); border-left-color: var(--primary-blue); box-shadow: 0 5px 15px rgba(0,85,162,0.2); }
+        .module-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .module-code { font-size: 1.3rem; font-weight: 800; color: var(--primary-blue); text-shadow: 1px 1px 2px rgba(0,0,0,0.1); }
+        .module-semester { background: linear-gradient(to right, var(--primary-blue), var(--secondary-blue)); color: white; padding: 5px 12px; border-radius: 15px; font-size: 0.9rem; font-weight: 600; box-shadow: 0 2px 5px rgba(0,32,91,0.3); }
+        .group-selection { display: none; }
+        .group-selection.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .group-type-title { color: var(--secondary-blue); margin: 20px 0 15px; font-weight: 700; font-size: 1.1rem; padding-left: 10px; border-left: 4px solid var(--gold-accent); }
+        .group-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin-bottom: 25px; }
+        .group-btn { padding: 15px; background: linear-gradient(145deg, #ffffff, #f5f5f5); border: 3px solid var(--medium-gray); border-radius: 10px; cursor: pointer; text-align: center; transition: all 0.3s; box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
+        .group-btn:hover { border-color: var(--secondary-blue); background: linear-gradient(145deg, #f0f8ff, #e6f2ff); transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,85,162,0.2); }
+        .group-btn.selected { background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue)); color: white; border-color: var(--primary-blue); box-shadow: 0 5px 15px rgba(0,32,91,0.3); }
+        .group-type { font-size: 0.9rem; font-weight: 600; margin-top: 5px; color: #666; }
+        .group-btn.selected .group-type { color: rgba(255,255,255,0.95); }
+        .group-time { font-size: 0.85rem; color: #888; margin-top: 4px; font-weight: 500; }
+        .selected-modules { margin-top: 30px; }
+        .selected-list { list-style: none; max-height: 200px; overflow-y: auto; }
+        .selected-list li { padding: 15px; border-bottom: 2px dashed #eee; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(145deg, #ffffff, #f8f8f8); margin-bottom: 8px; border-radius: 8px; transition: all 0.3s; }
+        .selected-list li:hover { background: linear-gradient(145deg, #f0f8ff, #e6f2ff); transform: translateX(5px); }
+        .selected-list li:last-child { border-bottom: none; }
+        .remove-btn { background: linear-gradient(145deg, #ffebee, #ffcdd2); color: var(--accent-red); border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.3s; box-shadow: 0 2px 5px rgba(227,27,35,0.2); }
+        .remove-btn:hover { background: linear-gradient(145deg, #ffcdd2, #ffb8c1); transform: scale(1.1); box-shadow: 0 3px 8px rgba(227,27,35,0.3); }
+        .timetable-display { background-color: white; border-radius: 15px; padding: 30px; box-shadow: 0 5px 20px rgba(0,0,0,0.1); border-top: 5px solid var(--accent-red); min-height: 700px; display: flex; flex-direction: column; border-right: 3px solid var(--secondary-blue); }
+        .timetable-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; flex-wrap: wrap; gap: 20px; }
+        .timetable-title { color: var(--primary-blue); font-size: 2rem; font-weight: 800; }
+        .timetable-actions { display: flex; gap: 15px; flex-wrap: wrap; }
+        .action-btn { padding: 12px 24px; background: linear-gradient(145deg, #ffffff, #f0f0f0); border: 3px solid var(--medium-gray); border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: all 0.3s; font-weight: 600; color: var(--primary-blue); box-shadow: 0 3px 8px rgba(0,0,0,0.1); }
+        .action-btn:hover { background: linear-gradient(145deg, #f0f0f0, #e8e8e8); transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.15); }
+        .action-btn.primary { background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue)); color: white; border-color: var(--primary-blue); box-shadow: 0 3px 10px rgba(0,32,91,0.3); }
+        .action-btn.primary:hover { background: linear-gradient(135deg, #001a4a, #004488); box-shadow: 0 5px 15px rgba(0,32,91,0.4); }
+        .timetable-grid { display: grid; grid-template-columns: 80px repeat(5, 1fr); grid-auto-rows: minmax(90px, auto); gap: 2px; background-color: var(--medium-gray); border: 2px solid var(--medium-gray); border-radius: 12px; overflow: hidden; flex-grow: 1; box-shadow: 0 3px 10px rgba(0,0,0,0.1); background-color: var(--timetable-bg); position: relative; }
+        .time-header, .day-header { background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue)); color: white; padding: 18px 12px; text-align: center; font-weight: 700; font-size: 1rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); min-height: 70px; display: flex; align-items: center; justify-content: center; }
+        .day-header { background: linear-gradient(135deg, var(--secondary-blue), #004488); }
+        .time-slot { background-color: var(--timetable-bg); padding: 12px; text-align: center; font-weight: 600; color: var(--primary-blue); border-right: 2px solid var(--medium-gray); font-size: 0.95rem; display: flex; align-items: center; justify-content: center; min-height: 90px; }
+        .timetable-cell { background-color: var(--timetable-bg); padding: 5px; min-height: 90px; position: relative; transition: background-color 0.3s; border-bottom: 1px solid #f0f0f0; }
+        .timetable-event { position: absolute; left: 3px; right: 3px; padding: 15px; border-radius: 10px; color: white; font-size: 0.9rem; overflow: hidden; z-index: 1; box-shadow: 0 3px 10px rgba(0,0,0,0.2); border: 2px solid rgba(255,255,255,0.3); transition: transform 0.3s, box-shadow 0.3s; }
+        .timetable-event:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .timetable-event.lecture { background: linear-gradient(135deg, var(--lecture-color), #45a049); }
+        .timetable-event.practical { background: linear-gradient(135deg, var(--practical-color), #1976d2); }
+        .event-title { font-weight: 700; margin-bottom: 5px; font-size: 1rem; text-shadow: 1px 1px 2px rgba(0,0,0,0.3); }
+        .event-details { font-size: 0.85rem; opacity: 0.95; line-height: 1.4; }
+        .color-customization { margin-top: 40px; padding: 25px; background: linear-gradient(145deg, #f0f8ff, #e6f2ff); border-radius: 15px; border: 3px solid var(--secondary-blue); box-shadow: 0 5px 15px rgba(0,85,162,0.1); }
+        .color-customization h3 { color: var(--primary-blue); margin-bottom: 25px; font-size: 1.4rem; font-weight: 700; padding-left: 15px; border-left: 5px solid var(--accent-red); }
+        .color-picker-container { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; margin-top: 20px; }
+        .color-picker { display: flex; align-items: center; gap: 20px; background: white; padding: 20px; border-radius: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+        .color-label { font-weight: 700; color: var(--primary-blue); min-width: 140px; font-size: 1.1rem; }
+        .color-input { width: 80px !important; height: 50px !important; border: 3px solid var(--medium-gray); border-radius: 10px; cursor: pointer; padding: 3px; transition: all 0.3s; }
+        .color-input:hover { border-color: var(--secondary-blue); transform: scale(1.05); }
+        .color-presets { display: flex; gap: 15px; margin-top: 15px; flex-wrap: wrap; }
+        .color-preset { width: 45px !important; height: 45px !important; border-radius: 10px; cursor: pointer; border: 3px solid transparent; transition: all 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .color-preset:hover { transform: scale(1.15); box-shadow: 0 3px 8px rgba(0,0,0,0.3); }
+        .color-preset.active { border: 4px solid var(--primary-blue); transform: scale(1.15); box-shadow: 0 3px 10px rgba(0,32,91,0.4); }
+        .timetable-bg-picker { margin-top: 25px; padding: 20px; background: linear-gradient(145deg, #fff8e1, #ffecb3); border-radius: 15px; border: 3px solid var(--gold-accent); box-shadow: 0 5px 15px rgba(255,215,0,0.1); }
+        .timetable-bg-picker h4 { color: var(--primary-blue); margin-bottom: 20px; font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        .timetable-bg-picker h4 i { color: var(--accent-red); }
+        .timetable-bg-container { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+        .timetable-bg-label { font-weight: 700; color: var(--primary-blue); font-size: 1.1rem; }
+        .timetable-bg-input { width: 80px; height: 50px; border: 3px solid var(--medium-gray); border-radius: 10px; cursor: pointer; padding: 3px; transition: all 0.3s; }
+        .timetable-bg-input:hover { border-color: var(--secondary-blue); transform: scale(1.05); }
+        .timetable-bg-presets { display: flex; gap: 15px; flex-wrap: wrap; }
+        .timetable-bg-preset { width: 50px; height: 50px; border-radius: 10px; cursor: pointer; border: 3px solid transparent; transition: all 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .timetable-bg-preset:hover { transform: scale(1.15); box-shadow: 0 3px 8px rgba(0,0,0,0.3); }
+        .timetable-bg-preset.active { border: 4px solid var(--primary-blue); transform: scale(1.15); box-shadow: 0 3px 10px rgba(0,32,91,0.4); }
+        .legend { display: flex; flex-wrap: wrap; gap: 25px; margin-top: 40px; padding: 25px; background: linear-gradient(145deg, #f0f8ff, #e6f2ff); border-radius: 15px; border: 3px solid var(--medium-gray); box-shadow: 0 3px 10px rgba(0,0,0,0.1); }
+        .legend-item { display: flex; align-items: center; gap: 15px; padding: 10px 20px; background: white; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .legend-color { width: 30px; height: 30px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.5); }
+        .legend-lecture { background: linear-gradient(135deg, var(--lecture-color), #45a049); }
+        .legend-practical { background: linear-gradient(135deg, var(--practical-color), #1976d2); }
+        footer { background: linear-gradient(135deg, var(--primary-blue), var(--secondary-blue)); color: white; padding: 40px 0; margin-top: 50px; border-top: 5px solid var(--accent-red); }
+        .footer-content { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 40px; }
+        .footer-section h3 { margin-bottom: 20px; font-size: 1.3rem; color: var(--gold-accent); font-weight: 700; padding-left: 15px; border-left: 4px solid var(--accent-red); }
+        .footer-links { list-style: none; }
+        .footer-links li { margin-bottom: 12px; }
+        .footer-links a { color: #ddd; text-decoration: none; transition: all 0.3s; display: flex; align-items: center; gap: 10px; }
+        .footer-links a:hover { color: white; text-decoration: underline; transform: translateX(5px); }
+        .copyright { text-align: center; padding-top: 25px; margin-top: 30px; border-top: 2px solid rgba(255,255,255,0.15); color: #bbb; font-size: 0.95rem; }
+        @media (max-width: 768px) {
+            .header-content { flex-direction: column; gap: 15px; text-align: center; }
+            .timetable-header { flex-direction: column; align-items: stretch; }
+            .timetable-actions { justify-content: center; }
+            .timetable-grid { grid-template-columns: 70px repeat(5, 1fr); font-size: 0.85rem; }
+            .time-slot { padding: 8px; }
+            .timetable-event { padding: 10px; font-size: 0.8rem; }
+        }
+        .clash-warning { background: linear-gradient(145deg, #fff3cd, #ffeaa7); border: 3px solid #ffc107; color: #856404; padding: 20px; border-radius: 12px; margin-bottom: 25px; display: none; animation: fadeIn 0.5s; box-shadow: 0 3px 10px rgba(133,100,4,0.1); }
+        .clash-warning.active { display: block; }
+        .clash-warning h4 { margin-bottom: 10px; color: #856404; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+        .clash-list { list-style-type: disc; margin-left: 25px; margin-top: 15px; }
+        .clash-list li { margin-bottom: 8px; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <div class="logo">
+                <div class="logo-crest">UP</div>
+                <div class="logo-text">
+                    <h1>Tuks<span>Connect</span> Timetable Builder</h1>
+                    <p>Build your perfect university schedule by choosing your preferred groups</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container main-content">
+        <div class="sidebar">
+            <h2 class="section-title">Build Your Timetable</h2>
+            <div class="module-list">
+                <h3>Select a Module</h3>
+                <div class="module-item active" data-module="ENG110">
+                    <div class="module-header">
+                        <span class="module-code">ENG 110</span>
+                        <span class="module-semester">S1</span>
+                    </div>
+                    <p style="font-size:0.95rem;color:#666;">English: Language and Writing</p>
+                </div>
+                <div class="module-item" data-module="ENG118">
+                    <div class="module-header">
+                        <span class="module-code">ENG 118</span>
+                        <span class="module-semester">S1</span>
+                    </div>
+                    <p style="font-size:0.95rem;color:#666;">English for Specific Purposes</p>
+                </div>
+                <div class="module-item" data-module="INL110">
+                    <div class="module-header">
+                        <span class="module-code">INL 110</span>
+                        <span class="module-semester">S1</span>
+                    </div>
+                    <p style="font-size:0.95rem;color:#666;">Information Science I</p>
+                </div>
+                <div class="module-item" data-module="INL130">
+                    <div class="module-header">
+                        <span class="module-code">INL 130</span>
+                        <span class="module-semester">S1</span>
+                    </div>
+                    <p style="font-size:0.95rem;color:#666;">Information Ethics and Digital Citizenship</p>
+                </div>
+                <div class="module-item" data-module="OBS114">
+                    <div class="module-header">
+                        <span class="module-code">OBS 114</span>
+                        <span class="module-semester">S1</span>
+                    </div>
+                    <p style="font-size:0.95rem;color:#666;">Business Management I</p>
+                </div>
+                <div class="module-item" data-module="PUB110">
+                    <div class="module-header">
+                        <span class="module-code">PUB 110</span>
+                        <span class="module-semester">S1</span>
+                    </div>
+                    <p style="font-size:0.95rem;color:#666;">Public Law I</p>
+                </div>
+                <div class="module-item" data-module="VKK111">
+                    <div class="module-header">
+                        <span class="module-code">VKK 111</span>
+                        <span class="module-semester">S1</span>
+                    </div>
+                    <p style="font-size:0.95rem;color:#666;">Visual Culture Studies I</p>
+                </div>
+            </div>
+
+            <div class="group-selection" id="group-selection">
+                <h3 style="margin-bottom:20px;color:var(--secondary-blue);font-weight:700;" id="selected-module-title">Select Groups</h3>
+                <div id="group-options"></div>
+            </div>
+
+            <div class="selected-modules">
+                <h3 style="margin-bottom:20px;color:var(--secondary-blue);font-weight:700;">Your Selected Groups</h3>
+                <ul class="selected-list" id="selected-list">
+                    <li>No modules selected yet</li>
+                </ul>
+                <div style="margin-top:25px;display:flex;gap:15px;">
+                    <button class="action-btn primary" id="clear-btn" style="flex:1;"><i class="fas fa-trash-alt"></i> Clear All</button>
+                    <button class="action-btn" id="generate-btn" style="flex:1;"><i class="fas fa-calendar-check"></i> Generate Timetable</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="timetable-display">
+            <div class="timetable-header">
+                <div class="timetable-title" id="timetable-title">Your Personalized Timetable</div>
+                <div class="timetable-actions">
+                    <button class="action-btn" id="download-btn"><i class="fas fa-download"></i> Download Timetable</button>
+                </div>
+            </div>
+            <div class="clash-warning" id="clash-warning">
+                <h4><i class="fas fa-exclamation-triangle"></i> Timetable Clash Detected!</h4>
+                <p>The following classes are overlapping:</p>
+                <ul class="clash-list" id="clash-list"></ul>
+                <p style="margin-top:15px;font-size:0.95rem;">Please select different groups to resolve these conflicts.</p>
+            </div>
+            <div class="timetable-grid" id="timetable-grid"></div>
+            <div class="legend">
+                <div class="legend-item"><div class="legend-color legend-lecture"></div><span>Lecture (L)</span></div>
+                <div class="legend-item"><div class="legend-color legend-practical"></div><span>Practical (P)</span></div>
+            </div>
+            <div class="color-customization">
+                <h3>Customize Colors</h3>
+                <div class="color-picker-container">
+                    <div class="color-picker">
+                        <span class="color-label">Lecture Color:</span>
+                        <input type="color" id="lecture-color-picker" class="color-input" value="#4CAF50">
+                        <div class="color-presets">
+                            <div class="color-preset" style="background-color:#4CAF50;" data-color="#4CAF50" data-type="lecture"></div>
+                            <div class="color-preset" style="background-color:#E53935;" data-color="#E53935" data-type="lecture"></div>
+                            <div class="color-preset" style="background-color:#FF9800;" data-color="#FF9800" data-type="lecture"></div>
+                            <div class="color-preset" style="background-color:#9C27B0;" data-color="#9C27B0" data-type="lecture"></div>
+                            <div class="color-preset" style="background-color:#3F51B5;" data-color="#3F51B5" data-type="lecture"></div>
+                            <div class="color-preset" style="background-color:#FF4081;" data-color="#FF4081" data-type="lecture"></div>
+                        </div>
+                    </div>
+                    <div class="color-picker">
+                        <span class="color-label">Practical Color:</span>
+                        <input type="color" id="practical-color-picker" class="color-input" value="#2196F3">
+                        <div class="color-presets">
+                            <div class="color-preset" style="background-color:#2196F3;" data-color="#2196F3" data-type="practical"></div>
+                            <div class="color-preset" style="background-color:#FFEB3B;" data-color="#FFEB3B" data-type="practical"></div>
+                            <div class="color-preset" style="background-color:#00BCD4;" data-color="#00BCD4" data-type="practical"></div>
+                            <div class="color-preset" style="background-color:#8BC34A;" data-color="#8BC34A" data-type="practical"></div>
+                            <div class="color-preset" style="background-color:#FF5722;" data-color="#FF5722" data-type="practical"></div>
+                            <div class="color-preset" style="background-color:#9C27B0;" data-color="#9C27B0" data-type="practical"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="timetable-bg-picker">
+                    <h4><i class="fas fa-palette"></i> Customize Timetable Background</h4>
+                    <div class="timetable-bg-container">
+                        <span class="timetable-bg-label">Background:</span>
+                        <input type="color" id="timetable-bg-picker" class="timetable-bg-input" value="#ffffff">
+                        <div class="timetable-bg-presets">
+                            <div class="timetable-bg-preset" style="background-color:#ffffff;" data-color="#ffffff"></div>
+                            <div class="timetable-bg-preset" style="background-color:#f8f9fa;" data-color="#f8f9fa"></div>
+                            <div class="timetable-bg-preset" style="background-color:#fff8e1;" data-color="#fff8e1"></div>
+                            <div class="timetable-bg-preset" style="background-color:#f3e5f5;" data-color="#f3e5f5"></div>
+                            <div class="timetable-bg-preset" style="background-color:#e8f5e9;" data-color="#e8f5e9"></div>
+                            <div class="timetable-bg-preset" style="background-color:#e3f2fd;" data-color="#e3f2fd"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>TuksConnect Timetable Builder</h3>
+                    <p>Create your perfect university schedule by selecting your preferred class groups.</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fas fa-book"></i> Module Registration</a></li>
+                        <li><a href="#"><i class="fas fa-calendar-alt"></i> Academic Calendar</a></li>
+                        <li><a href="#"><i class="fas fa-map-marked-alt"></i> Campus Map</a></li>
+                        <li><a href="#"><i class="fas fa-user-graduate"></i> Student Portal</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h3>Need Help?</h3>
+                    <ul class="footer-links">
+                        <li><a href="#"><i class="fas fa-question-circle"></i> Timetable Guide</a></li>
+                        <li><a href="#"><i class="fas fa-comments"></i> Group Selection FAQ</a></li>
+                        <li><a href="#"><i class="fas fa-headset"></i> Contact Advisor</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>© 2026 University of Pretoria · TuksConnect Timetable Builder · Data sourced directly from UP PDF</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+    // =====================================================================
+    // TIMETABLE DATA — SOURCED DIRECTLY FROM UP PDF DOCUMENT
+    // =====================================================================
+    const timetableData = {
+
+        // ── ENG 110 ──────────────────────────────────────────────────────
+        // G01: L1 Mon 15:30 Thuto1-1 | L2 Wed 11:30 Thuto1-1 | L3 Thu 10:30 (multiple venues listed)
+        // G02: L1 Tue 07:30 Thuto1-1 | L2 Wed 13:30 Thuto1-1 | L3 Fri 07:30 (multiple venues listed)
+        // Note: PDF lists multiple venues for L3 (parallel sessions). Primary venue shown here.
+        "ENG110": {
+            name: "English: Language and Writing",
+            semester: "S1",
+            groups: {
+                "G01-L": [
+                    { type: "lecture", day: "Monday",    time: "15:30 - 16:20", venue: "Thuto 1-1",  activity: "L1" },
+                    { type: "lecture", day: "Wednesday", time: "11:30 - 12:20", venue: "Thuto 1-1",  activity: "L2" },
+                    { type: "lecture", day: "Thursday",  time: "10:30 - 11:20", venue: "HB 3-23 / HB 3-24 / HB 4-12 / HB 4-13 / HB 4-14 / HB 4-15 / HB 4-7 / HB 4-9 / IT 2-24 / IT 4-2 / Theology", activity: "L3" }
+                ],
+                "G02-L": [
+                    { type: "lecture", day: "Tuesday",   time: "07:30 - 08:20", venue: "Thuto 1-1",  activity: "L1" },
+                    { type: "lecture", day: "Wednesday", time: "13:30 - 14:20", venue: "Thuto 1-1",  activity: "L2" },
+                    { type: "lecture", day: "Friday",    time: "07:30 - 08:20", venue: "HB 1-4 / HB 4-1 / HB 4-12 / HB 4-16 / HB 4-6 / HB 4-7 / HB 4-8 / IT 2-24 / IT 2-26 / IT 4-2 / Theology", activity: "L3" }
+                ]
+            }
+        },
+
+        // ── ENG 118 ──────────────────────────────────────────────────────
+        // G01: L1 Mon 09:30 Thuto1-1 | L2 Fri 11:30 Thuto1-2
+        // G02: L1 Mon 13:30 Roos hall | L2 Wed 12:30 Roos hall
+        "ENG118": {
+            name: "English for Specific Purposes",
+            semester: "S1",
+            groups: {
+                "G01-L": [
+                    { type: "lecture", day: "Monday", time: "09:30 - 10:20", venue: "Thuto 1-1", activity: "L1" },
+                    { type: "lecture", day: "Friday",  time: "11:30 - 12:20", venue: "Thuto 1-2", activity: "L2" }
+                ],
+                "G02-L": [
+                    { type: "lecture", day: "Monday",    time: "13:30 - 14:20", venue: "Roos hall", activity: "L1" },
+                    { type: "lecture", day: "Wednesday", time: "12:30 - 13:20", venue: "Roos hall", activity: "L2" }
+                ]
+            }
+        },
+
+        // ── INL 110 ──────────────────────────────────────────────────────
+        // G01: L1 Mon 16:30 Thuto3-1 | L2 Thu 09:30 AE du Toit Auditorium | L3 Fri 07:30 Thuto3-2
+        "INL110": {
+            name: "Information Science I",
+            semester: "S1",
+            groups: {
+                "G01-L": [
+                    { type: "lecture", day: "Monday",   time: "16:30 - 17:20", venue: "Thuto 3-1",              activity: "L1" },
+                    { type: "lecture", day: "Thursday", time: "09:30 - 10:20", venue: "AE du Toit Auditorium",  activity: "L2" },
+                    { type: "lecture", day: "Friday",   time: "07:30 - 08:20", venue: "Thuto 3-2",              activity: "L3" }
+                ]
+            }
+        },
+
+        // ── INL 130 ──────────────────────────────────────────────────────
+        // G01 Lecture: L1 Mon 13:30 IT4-4 | L2 Tue 10:30 IT4-4 | L3 Thu 12:30 IT4-4
+        // G01 Practical: P1 Wed 12:30 IT4-4
+        "INL130": {
+            name: "Information Ethics and Digital Citizenship",
+            semester: "S1",
+            groups: {
+                "G01-L": [
+                    { type: "lecture", day: "Monday",    time: "13:30 - 14:20", venue: "IT 4-4", activity: "L1" },
+                    { type: "lecture", day: "Tuesday",   time: "10:30 - 11:20", venue: "IT 4-4", activity: "L2" },
+                    { type: "lecture", day: "Thursday",  time: "12:30 - 13:20", venue: "IT 4-4", activity: "L3" }
+                ],
+                "P01-P": [
+                    { type: "practical", day: "Wednesday", time: "12:30 - 13:20", venue: "IT 4-4", activity: "P1" }
+                ]
+            }
+        },
+
+        // ── OBS 114 ──────────────────────────────────────────────────────
+        // G01: Tue 10:30 Centenary3 | Wed 14:30 HB4-2 | Fri 15:30 Centenary4
+        // G02: Mon 15:30 Centenary4 | Wed 13:30 IT4-5  | Thu 13:30 Centenary3
+        // G03: Tue 09:30 Large Chemistry Hall | Wed 13:30 Large Chemistry Hall | Fri 12:30 Large Chemistry Hall
+        // G04: Mon 13:30 Thuto1-1 | Wed 12:30 Thuto1-2 | Thu 16:30 EngIII-6
+        // G05: Mon 10:30 IT2-23   | Tue 16:30 vd Bijl Hall | Wed 10:30 Centenary2
+        // G06: Tue 08:30 Centenary3 | Wed 15:30 Centenary3 | Fri 14:30 IT4-1
+        // G07: Tue 14:30 vd Bijl Hall | Wed 15:30 HB4-2 | Fri 10:30 Centenary4
+        // G08: Tue 15:30 vd Bijl Hall | Wed 14:30 Centenary3 | Fri 15:30 IT4-1
+        "OBS114": {
+            name: "Business Management I",
+            semester: "S1",
+            groups: {
+                "G01-L": [
+                    { type: "lecture", day: "Tuesday",   time: "10:30 - 11:20", venue: "Centenary 3",       activity: "L1" },
+                    { type: "lecture", day: "Wednesday", time: "14:30 - 15:20", venue: "HB 4-2",            activity: "L2" },
+                    { type: "lecture", day: "Friday",    time: "15:30 - 16:20", venue: "Centenary 4",       activity: "L3" }
+                ],
+                "G02-L": [
+                    { type: "lecture", day: "Monday",    time: "15:30 - 16:20", venue: "Centenary 4",       activity: "L1" },
+                    { type: "lecture", day: "Wednesday", time: "13:30 - 14:20", venue: "IT 4-5",            activity: "L2" },
+                    { type: "lecture", day: "Thursday",  time: "13:30 - 14:20", venue: "Centenary 3",       activity: "L3" }
+                ],
+                "G03-L": [
+                    { type: "lecture", day: "Tuesday",   time: "09:30 - 10:20", venue: "Large Chemistry Hall", activity: "L1" },
+                    { type: "lecture", day: "Wednesday", time: "13:30 - 14:20", venue: "Large Chemistry Hall", activity: "L2" },
+                    { type: "lecture", day: "Friday",    time: "12:30 - 13:20", venue: "Large Chemistry Hall", activity: "L3" }
+                ],
+                "G04-L": [
+                    { type: "lecture", day: "Monday",    time: "13:30 - 14:20", venue: "Thuto 1-1",         activity: "L1" },
+                    { type: "lecture", day: "Wednesday", time: "12:30 - 13:20", venue: "Thuto 1-2",         activity: "L2" },
+                    { type: "lecture", day: "Thursday",  time: "16:30 - 17:20", venue: "Eng III - 6",       activity: "L3" }
+                ],
+                "G05-L": [
+                    { type: "lecture", day: "Monday",    time: "10:30 - 11:20", venue: "IT 2-23",           activity: "L1" },
+                    { type: "lecture", day: "Tuesday",   time: "16:30 - 17:20", venue: "vd Bijl Hall",      activity: "L2" },
+                    { type: "lecture", day: "Wednesday", time: "10:30 - 11:20", venue: "Centenary 2",       activity: "L3" }
+                ],
+                "G06-L": [
+                    { type: "lecture", day: "Tuesday",   time: "08:30 - 09:20", venue: "Centenary 3",       activity: "L1" },
+                    { type: "lecture", day: "Wednesday", time: "15:30 - 16:20", venue: "Centenary 3",       activity: "L2" },
+                    { type: "lecture", day: "Friday",    time: "14:30 - 15:20", venue: "IT 4-1",            activity: "L3" }
+                ],
+                "G07-L": [
+                    { type: "lecture", day: "Tuesday",   time: "14:30 - 15:20", venue: "vd Bijl Hall",      activity: "L1" },
+                    { type: "lecture", day: "Wednesday", time: "15:30 - 16:20", venue: "HB 4-2",            activity: "L2" },
+                    { type: "lecture", day: "Friday",    time: "10:30 - 11:20", venue: "Centenary 4",       activity: "L3" }
+                ],
+                "G08-L": [
+                    { type: "lecture", day: "Tuesday",   time: "15:30 - 16:20", venue: "vd Bijl Hall",      activity: "L1" },
+                    { type: "lecture", day: "Wednesday", time: "14:30 - 15:20", venue: "Centenary 3",       activity: "L2" },
+                    { type: "lecture", day: "Friday",    time: "15:30 - 16:20", venue: "IT 4-1",            activity: "L3" }
+                ]
+            }
+        },
+
+        // ── PUB 110 ──────────────────────────────────────────────────────
+        // G01 Lecture: L1 Tue 09:30 HB3-24 | L2 Thu 08:30 HB3-24 | L3 Fri 08:30 HB4-8
+        // EP01 Practical: P1 Fri 09:30 HB4-8
+        "PUB110": {
+            name: "Public Law I",
+            semester: "S1",
+            groups: {
+                "G01-L": [
+                    { type: "lecture", day: "Tuesday",  time: "09:30 - 10:20", venue: "HB 3-24", activity: "L1" },
+                    { type: "lecture", day: "Thursday", time: "08:30 - 09:20", venue: "HB 3-24", activity: "L2" },
+                    { type: "lecture", day: "Friday",   time: "08:30 - 09:20", venue: "HB 4-8",  activity: "L3" }
+                ],
+                "EP01-P": [
+                    { type: "practical", day: "Friday", time: "09:30 - 10:20", venue: "HB 4-8", activity: "P1" }
+                ]
+            }
+        },
+
+        // ── VKK 111 ──────────────────────────────────────────────────────
+        // G01: L1 Wed 08:30 vd Bijl Hall | L2 Thu 13:30 vd Bijl Hall | L3 Fri 10:30 vd Bijl Hall
+        "VKK111": {
+            name: "Visual Culture Studies I",
+            semester: "S1",
+            groups: {
+                "G01-L": [
+                    { type: "lecture", day: "Wednesday", time: "08:30 - 09:20", venue: "vd Bijl Hall", activity: "L1" },
+                    { type: "lecture", day: "Thursday",  time: "13:30 - 14:20", venue: "vd Bijl Hall", activity: "L2" },
+                    { type: "lecture", day: "Friday",    time: "10:30 - 11:20", venue: "vd Bijl Hall", activity: "L3" }
+                ]
+            }
+        }
+    };
+
+    // =====================================================================
+    const days = ["Monday","Tuesday","Wednesday","Thursday","Friday"];
+    const timeSlots = [
+        "07:30 - 08:20","08:30 - 09:20","09:30 - 10:20",
+        "10:30 - 11:20","11:30 - 12:20","12:30 - 13:20",
+        "13:30 - 14:20","14:30 - 15:20","15:30 - 16:20",
+        "16:30 - 17:20"
+    ];
+
+    let selectedModule = "ENG110";
+    let selectedGroups = {};
+    let lectureColor = "#4CAF50";
+    let practicalColor = "#2196F3";
+    let timetableBgColor = "#ffffff";
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeModuleSelection();
+        generateTimetableGrid();
+        setupEventListeners();
+        showGroupSelection(selectedModule);
+        generateTimetable();
+    });
+
+    function initializeModuleSelection() {
+        document.querySelectorAll('.module-item').forEach(item => {
+            item.addEventListener('click', function() {
+                document.querySelectorAll('.module-item').forEach(m => m.classList.remove('active'));
+                this.classList.add('active');
+                selectedModule = this.getAttribute('data-module');
+                showGroupSelection(selectedModule);
+            });
+        });
+    }
+
+    function showGroupSelection(moduleCode) {
+        const groupSelection = document.getElementById('group-selection');
+        document.getElementById('selected-module-title').textContent = `Select Groups for ${moduleCode}`;
+        const container = document.getElementById('group-options');
+        container.innerHTML = '';
+        const module = timetableData[moduleCode];
+        if (!module) return;
+
+        const lectures = {}, practicals = {};
+        Object.keys(module.groups).forEach(key => {
+            const first = module.groups[key][0];
+            if (first.type === "lecture") lectures[key] = module.groups[key];
+            else practicals[key] = module.groups[key];
+        });
+
+        if (Object.keys(lectures).length > 0) {
+            const title = document.createElement('div');
+            title.className = 'group-type-title';
+            title.textContent = 'Lecture Groups';
+            container.appendChild(title);
+            const grid = document.createElement('div');
+            grid.className = 'group-options';
+            Object.keys(lectures).forEach(k => grid.appendChild(createGroupButton(moduleCode, k, lectures[k])));
+            container.appendChild(grid);
+        }
+        if (Object.keys(practicals).length > 0) {
+            const title = document.createElement('div');
+            title.className = 'group-type-title';
+            title.textContent = 'Practical Groups';
+            container.appendChild(title);
+            const grid = document.createElement('div');
+            grid.className = 'group-options';
+            Object.keys(practicals).forEach(k => grid.appendChild(createGroupButton(moduleCode, k, practicals[k])));
+            container.appendChild(grid);
+        }
+        groupSelection.classList.add('active');
+    }
+
+    function createGroupButton(moduleCode, groupKey, group) {
+        const btn = document.createElement('div');
+        btn.className = 'group-btn';
+        if (selectedGroups[moduleCode] && selectedGroups[moduleCode].includes(groupKey)) btn.classList.add('selected');
+        const displayName = groupKey.replace(/-L$/, '').replace(/-P$/, '');
+        const groupType = groupKey.includes('-P') ? 'Practical' : 'Lecture';
+        const summary = [...new Set(group.map(e => e.day.substring(0,3) + ' ' + e.time.split(' - ')[0]))].join(', ');
+        btn.innerHTML = `
+            <div style="font-weight:700;font-size:1.1rem;">${displayName}</div>
+            <div class="group-type">${groupType} Group</div>
+            <div class="group-time">${summary}</div>`;
+        btn.addEventListener('click', () => toggleGroup(moduleCode, groupKey));
+        return btn;
+    }
+
+    function toggleGroup(moduleCode, groupKey) {
+        if (!selectedGroups[moduleCode]) selectedGroups[moduleCode] = [];
+        const idx = selectedGroups[moduleCode].indexOf(groupKey);
+        if (idx === -1) selectedGroups[moduleCode].push(groupKey);
+        else {
+            selectedGroups[moduleCode].splice(idx, 1);
+            if (selectedGroups[moduleCode].length === 0) delete selectedGroups[moduleCode];
+        }
+        updateSelectedList();
+        showGroupSelection(selectedModule);
+        generateTimetable();
+    }
+
+    function updateSelectedList() {
+        const list = document.getElementById('selected-list');
+        if (Object.keys(selectedGroups).length === 0) { list.innerHTML = '<li>No modules selected yet</li>'; return; }
+        list.innerHTML = '';
+        Object.keys(selectedGroups).forEach(moduleCode => {
+            selectedGroups[moduleCode].forEach(groupKey => {
+                const li = document.createElement('li');
+                const displayName = groupKey.replace(/-L$/, '').replace(/-P$/, '');
+                const groupType = groupKey.includes('-P') ? 'Practical' : 'Lecture';
+                li.innerHTML = `
+                    <div><strong>${moduleCode}</strong><br>
+                    <span style="font-size:0.9rem;color:#666;">${groupType} Group ${displayName}</span></div>
+                    <button class="remove-btn" data-module="${moduleCode}" data-group="${groupKey}"><i class="fas fa-times"></i></button>`;
+                list.appendChild(li);
+            });
+        });
+        document.querySelectorAll('.remove-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const m = this.getAttribute('data-module'), g = this.getAttribute('data-group');
+                if (selectedGroups[m]) {
+                    const i = selectedGroups[m].indexOf(g);
+                    if (i !== -1) { selectedGroups[m].splice(i, 1); if (!selectedGroups[m].length) delete selectedGroups[m]; }
+                }
+                updateSelectedList(); generateTimetable();
+            });
+        });
+    }
+
+    function generateTimetableGrid() {
+        const grid = document.getElementById('timetable-grid');
+        grid.innerHTML = '';
+        const emptyCell = document.createElement('div');
+        emptyCell.className = 'time-header'; emptyCell.textContent = 'TIME';
+        emptyCell.style.gridColumn = '1'; emptyCell.style.gridRow = '1';
+        grid.appendChild(emptyCell);
+        days.forEach((day, i) => {
+            const dh = document.createElement('div');
+            dh.className = 'day-header'; dh.textContent = day.substring(0,3).toUpperCase(); dh.title = day;
+            dh.style.gridColumn = (i+2).toString(); dh.style.gridRow = '1';
+            grid.appendChild(dh);
+        });
+        timeSlots.forEach((ts, row) => {
+            const tc = document.createElement('div');
+            tc.className = 'time-slot'; tc.textContent = ts.split(' - ')[0]; tc.title = ts;
+            tc.style.gridColumn = '1'; tc.style.gridRow = (row+2).toString();
+            grid.appendChild(tc);
+            days.forEach((day, col) => {
+                const cell = document.createElement('div');
+                cell.className = 'timetable-cell';
+                cell.setAttribute('data-day', day); cell.setAttribute('data-time', ts);
+                cell.setAttribute('data-row', row); cell.setAttribute('data-col', col);
+                cell.style.gridColumn = (col+2).toString(); cell.style.gridRow = (row+2).toString();
+                grid.appendChild(cell);
+            });
+        });
+    }
+
+    function generateTimetable() {
+        document.querySelectorAll('.timetable-event').forEach(e => e.remove());
+        document.getElementById('clash-warning').classList.remove('active');
+        if (!Object.keys(selectedGroups).length) return;
+
+        const allEvents = [];
+        Object.keys(selectedGroups).forEach(moduleCode => {
+            const module = timetableData[moduleCode];
+            if (!module) return;
+            selectedGroups[moduleCode].forEach(groupKey => {
+                if (!module.groups[groupKey]) return;
+                module.groups[groupKey].forEach(event => {
+                    allEvents.push({ module: moduleCode, group: groupKey.replace(/-L$/,'').replace(/-P$/,''), ...event });
+                });
+            });
+        });
+
+        const clashes = checkClashes(allEvents);
+        if (clashes.length > 0) { showClashWarning(clashes); return; }
+
+        allEvents.forEach(event => {
+            const dayIdx = days.indexOf(event.day);
+            if (dayIdx === -1) return;
+            const [sh, sm] = event.time.split(' - ')[0].split(':').map(Number);
+            let rowIdx = -1;
+            timeSlots.forEach((ts, i) => {
+                const [h, m] = ts.split(' - ')[0].split(':').map(Number);
+                if (h === sh && m === sm) rowIdx = i;
+            });
+            if (rowIdx === -1) return;
+            const cell = document.querySelector(`.timetable-cell[data-row="${rowIdx}"][data-col="${dayIdx}"]`);
+            if (!cell) return;
+
+            const el = document.createElement('div');
+            el.className = `timetable-event ${event.type}`;
+            const color = event.type === 'lecture' ? lectureColor : practicalColor;
+            el.style.background = `linear-gradient(135deg, ${color}, ${darken(color, 20)})`;
+
+            const [eh, em] = event.time.split(' - ')[1].split(':').map(Number);
+            const dur = (eh*60+em) - (sh*60+sm);
+            el.style.top = '5px';
+            el.style.height = `${Math.max(70, (dur/60)*90 - 10)}px`;
+
+            el.innerHTML = `
+                <div class="event-title">${event.module} (${event.group})</div>
+                <div class="event-details">
+                    <strong>${event.venue}</strong><br>
+                    ${event.time}<br>
+                    ${event.activity}
+                </div>`;
+            cell.appendChild(el);
+        });
+
+        document.querySelector('.legend-lecture').style.background = `linear-gradient(135deg, ${lectureColor}, ${darken(lectureColor,20)})`;
+        document.querySelector('.legend-practical').style.background = `linear-gradient(135deg, ${practicalColor}, ${darken(practicalColor,20)})`;
+    }
+
+    function darken(color, pct) {
+        const n = parseInt(color.replace('#',''), 16), a = Math.round(2.55*pct);
+        const R = (n>>16)-a, G = (n>>8&0xFF)-a, B = (n&0xFF)-a;
+        return '#' + (0x1000000 + (R<255?R<1?0:R:255)*0x10000 + (G<255?G<1?0:G:255)*0x100 + (B<255?B<1?0:B:255)).toString(16).slice(1);
+    }
+
+    function checkClashes(events) {
+        const clashes = [];
+        days.forEach(day => {
+            const de = events.filter(e => e.day === day);
+            for (let i = 0; i < de.length; i++)
+                for (let j = i+1; j < de.length; j++)
+                    if (overlap(de[i], de[j])) clashes.push({ day, event1: de[i], event2: de[j] });
+        });
+        return clashes;
+    }
+
+    function overlap(e1, e2) {
+        const parse = t => { const [h,m] = t.split(':'); return +h*60 + +m; };
+        const [s1,e1e] = e1.time.split(' - ').map(parse);
+        const [s2,e2e] = e2.time.split(' - ').map(parse);
+        return s1 < e2e && e1e > s2;
+    }
+
+    function showClashWarning(clashes) {
+        const warn = document.getElementById('clash-warning');
+        const list = document.getElementById('clash-list');
+        list.innerHTML = '';
+        clashes.forEach(c => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${c.day}:</strong> ${c.event1.module} (${c.event1.time}) clashes with ${c.event2.module} (${c.event2.time})`;
+            list.appendChild(li);
+        });
+        warn.classList.add('active');
+    }
+
+    function setupEventListeners() {
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            selectedGroups = {}; updateSelectedList(); generateTimetable();
+        });
+        document.getElementById('generate-btn').addEventListener('click', generateTimetable);
+        document.getElementById('download-btn').addEventListener('click', downloadTimetable);
+
+        document.getElementById('lecture-color-picker').addEventListener('input', e => { lectureColor = e.target.value; generateTimetable(); });
+        document.getElementById('practical-color-picker').addEventListener('input', e => { practicalColor = e.target.value; generateTimetable(); });
+        document.getElementById('timetable-bg-picker').addEventListener('input', e => {
+            timetableBgColor = e.target.value;
+            document.documentElement.style.setProperty('--timetable-bg', timetableBgColor);
+            document.querySelectorAll('.timetable-cell, .time-slot').forEach(c => c.style.backgroundColor = timetableBgColor);
+        });
+        document.querySelectorAll('.color-preset').forEach(p => {
+            p.addEventListener('click', function() {
+                const color = this.getAttribute('data-color'), type = this.getAttribute('data-type');
+                document.querySelectorAll(`.color-preset[data-type="${type}"]`).forEach(x => x.classList.remove('active'));
+                this.classList.add('active');
+                if (type === 'lecture') { lectureColor = color; document.getElementById('lecture-color-picker').value = color; }
+                else { practicalColor = color; document.getElementById('practical-color-picker').value = color; }
+                generateTimetable();
+            });
+        });
+        document.querySelectorAll('.timetable-bg-preset').forEach(p => {
+            p.addEventListener('click', function() {
+                const color = this.getAttribute('data-color');
+                document.querySelectorAll('.timetable-bg-preset').forEach(x => x.classList.remove('active'));
+                this.classList.add('active');
+                timetableBgColor = color;
+                document.getElementById('timetable-bg-picker').value = color;
+                document.documentElement.style.setProperty('--timetable-bg', timetableBgColor);
+                document.querySelectorAll('.timetable-cell, .time-slot').forEach(c => c.style.backgroundColor = timetableBgColor);
+            });
+        });
+    }
+
+    function downloadTimetable() {
+        if (!Object.keys(selectedGroups).length) { alert('Please select at least one module group before downloading.'); return; }
+        const allEvents = [];
+        Object.keys(selectedGroups).forEach(mc => {
+            const mod = timetableData[mc];
+            if (!mod) return;
+            selectedGroups[mc].forEach(gk => { if (mod.groups[gk]) mod.groups[gk].forEach(e => allEvents.push(e)); });
+        });
+        if (checkClashes(allEvents).length > 0) { alert('Cannot download timetable with clashes. Please resolve all conflicts first.'); return; }
+
+        const temp = document.createElement('div');
+        temp.style.cssText = 'position:absolute;left:-9999px;top:0;width:1200px;background:#fff;padding:30px;border-radius:15px;';
+        const clone = document.querySelector('.timetable-display').cloneNode(true);
+        clone.querySelectorAll('.color-customization,.timetable-actions,#clash-warning').forEach(el => el.remove());
+        const title = clone.querySelector('.timetable-title');
+        if (title) title.textContent = 'University of Pretoria – Personal Timetable';
+        const dateDiv = document.createElement('div');
+        dateDiv.style.cssText = 'color:#666;font-size:16px;margin-bottom:20px;';
+        dateDiv.textContent = new Date().toLocaleDateString('en-ZA', {weekday:'long',year:'numeric',month:'long',day:'numeric'});
+        const hdr = clone.querySelector('.timetable-header');
+        if (hdr) hdr.appendChild(dateDiv);
+        temp.appendChild(clone);
+        document.body.appendChild(temp);
+
+        html2canvas(temp, {scale:2, useCORS:true, backgroundColor:'#ffffff', allowTaint:true, logging:false}).then(canvas => {
+            const link = document.createElement('a');
+            link.download = `UP_Timetable_${new Date().toISOString().split('T')[0]}.png`;
+            link.href = canvas.toDataURL('image/png', 1.0);
+            document.body.appendChild(link); link.click();
+            document.body.removeChild(link); document.body.removeChild(temp);
+        }).catch(err => { console.error(err); alert('Error generating image'); document.body.removeChild(temp); });
+    }
+    </script>
+</body>
+</html>
